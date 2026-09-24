@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
 import { createClient } from '@/lib/supabase/client'
+import { notifyError, notifySuccess } from '@/lib/notifications'
 
 const optionalFields = ['product', 'warehouse', 'destination', 'observations'] as const
 
@@ -28,7 +29,9 @@ export function NewTripForm() {
     const loadingDate = trimmedValue(formData, 'loading_date')
 
     if (!plate || !driver || !loadingDate) {
-      setErrorMessage('Completa los campos obligatorios: placa, conductor y fecha de cargue.')
+      const message = 'Completa los campos obligatorios: placa, conductor y fecha de cargue.'
+      setErrorMessage(message)
+      notifyError(message)
       return
     }
 
@@ -56,14 +59,19 @@ export function NewTripForm() {
         .single()
 
       if (error || !data) {
-        setErrorMessage('No fue posible guardar el viaje. Inténtalo de nuevo.')
+        const message = 'No fue posible guardar el viaje. Inténtalo de nuevo.'
+        setErrorMessage(message)
+        notifyError(message)
         return
       }
 
-      router.replace(`/viajes/${data.id}?created=1`)
+      notifySuccess('Viaje creado correctamente.')
+      router.replace(`/viajes/${data.id}`)
       router.refresh()
     } catch {
-      setErrorMessage('No fue posible conectar con el servicio. Inténtalo de nuevo.')
+      const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
+      setErrorMessage(message)
+      notifyError(message)
     } finally {
       setIsSubmitting(false)
     }

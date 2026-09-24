@@ -5,22 +5,21 @@ import { notFound } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { FinishTripButton } from '@/components/finish-trip-button'
 import { PageHeading } from '@/components/page-heading'
+import { StatusBadge } from '@/components/status-badge'
 import { TripControlCard } from '@/components/trip-control-card'
 import { tripControlDefinitions } from '@/lib/trip-controls'
 import { createClient } from '@/lib/supabase/server'
 
 type ViajeDetailPageProps = {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ created?: string; updated?: string }>
 }
 
 export const metadata = {
   title: 'Detalle del viaje',
 }
 
-export default async function ViajeDetailPage({ params, searchParams }: ViajeDetailPageProps) {
+export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) {
   const { id } = await params
-  const { created, updated } = await searchParams
   const supabase = await createClient()
   const [{ data: trip, error: tripError }, { data: controls, error: controlsError }] = await Promise.all([
     supabase.from('trips').select('*').eq('id', id).maybeSingle(),
@@ -39,7 +38,6 @@ export default async function ViajeDetailPage({ params, searchParams }: ViajeDet
     ['Destino', trip.destination ?? '—'],
     ['Fecha de cargue', formatDate(trip.loading_date)],
     ['Observaciones', trip.observations ?? '—'],
-    ['Estado', trip.status === 'FINISHED' ? 'Finalizado' : 'En ruta'],
     ['Fecha de creación', formatDateTime(trip.created_at)],
     ['Última actualización', formatDateTime(trip.updated_at)],
   ]
@@ -58,9 +56,9 @@ export default async function ViajeDetailPage({ params, searchParams }: ViajeDet
           </div>
         }
       />
-      {created === '1' || updated === '1' ? <p role="status" className="mt-6 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{created === '1' ? 'El viaje fue creado correctamente.' : 'El viaje fue actualizado correctamente.'}</p> : null}
       <dl className="mt-8 grid overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm sm:grid-cols-2">
         {details.map(([label, value]) => <div key={label} className="border-b border-slate-200 p-5 sm:even:border-l"><dt className="text-sm font-medium text-slate-500">{label}</dt><dd className="mt-1 whitespace-pre-wrap text-sm font-semibold text-slate-900">{value}</dd></div>)}
+        <div className="border-b border-slate-200 p-5 sm:even:border-l"><dt className="text-sm font-medium text-slate-500">Estado</dt><dd className="mt-1"><StatusBadge status={trip.status} /></dd></div>
       </dl>
       <section className="mt-8">
         <div>

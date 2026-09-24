@@ -5,6 +5,7 @@ import { useState } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { createClient } from '@/lib/supabase/client'
+import { notifyError, notifySuccess } from '@/lib/notifications'
 import type { Database } from '@/types/database'
 
 type ExportTrip = Pick<
@@ -150,8 +151,11 @@ export function DownloadExcelButton() {
       anchor.click()
       anchor.remove()
       window.setTimeout(() => URL.revokeObjectURL(url), 0)
+      notifySuccess('Archivo Excel descargado correctamente.')
     } catch {
-      setErrorMessage('No fue posible generar el archivo de Excel. Inténtalo de nuevo.')
+      const message = 'No fue posible generar el archivo de Excel. Inténtalo de nuevo.'
+      setErrorMessage(message)
+      notifyError(message)
     } finally {
       setIsGenerating(false)
     }

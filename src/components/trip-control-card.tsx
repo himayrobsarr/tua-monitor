@@ -1,10 +1,11 @@
 'use client'
 
-import { LoaderCircle, Save } from 'lucide-react'
+import { CheckCircle2, Clock3, LoaderCircle, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
 import { createClient } from '@/lib/supabase/client'
+import { notifyError, notifySuccess } from '@/lib/notifications'
 import type { TripControlType } from '@/lib/trip-controls'
 import type { Database } from '@/types/database'
 
@@ -41,7 +42,9 @@ export function TripControlCard({ control, controlType, title, tripId }: TripCon
     const observation = trimmedValue(formData, 'observation')
 
     if (!reportedLocation && !incident && !observation) {
-      setErrorMessage('Registra al menos ubicación, novedad u observación antes de guardar el control.')
+      const message = 'Registra al menos ubicación, novedad u observación antes de guardar el control.'
+      setErrorMessage(message)
+      notifyError(message)
       return
     }
 
@@ -64,16 +67,23 @@ export function TripControlCard({ control, controlType, title, tripId }: TripCon
 
       if (response.error || !response.data) {
         if (response.error?.code === '23505') {
-          setErrorMessage('Este control ya fue registrado. Recarga la página para ver su información.')
+          const message = 'Este control ya fue registrado. Recarga la página para ver su información.'
+          setErrorMessage(message)
+          notifyError(message)
         } else {
-          setErrorMessage('No fue posible guardar el control. Inténtalo de nuevo.')
+          const message = 'No fue posible guardar el control. Inténtalo de nuevo.'
+          setErrorMessage(message)
+          notifyError(message)
         }
         return
       }
 
+      notifySuccess(control ? 'Control actualizado correctamente.' : 'Control registrado correctamente.')
       router.refresh()
     } catch {
-      setErrorMessage('No fue posible conectar con el servicio. Inténtalo de nuevo.')
+      const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
+      setErrorMessage(message)
+      notifyError(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -83,7 +93,7 @@ export function TripControlCard({ control, controlType, title, tripId }: TripCon
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <h3 className="text-base font-semibold text-slate-950">{title}</h3>
-        {control ? <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Registrado</span> : <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Pendiente</span>}
+        {control ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"><CheckCircle2 className="size-3.5" aria-hidden="true" />Registrado</span> : <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700"><Clock3 className="size-3.5" aria-hidden="true" />Pendiente</span>}
       </div>
       {control ? (
         <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">

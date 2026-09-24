@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 
 import './globals.css'
+import 'react-toastify/dist/ReactToastify.css'
+
+import { ToastProvider } from '@/components/toast-provider'
 
 export const metadata: Metadata = {
   title: {
@@ -13,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>{children}<ToastProvider /></body>
     </html>
   )
 }
