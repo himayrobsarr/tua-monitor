@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { createClient } from '@/lib/supabase/client'
+import { notifyError, notifySuccess } from '@/lib/notifications'
 
 export function LogoutButton() {
   const router = useRouter()
@@ -20,14 +21,19 @@ export function LogoutButton() {
       const { error } = await supabase.auth.signOut()
 
       if (error) {
-        setErrorMessage('No fue posible cerrar sesión. Inténtalo de nuevo.')
+        const message = 'No fue posible cerrar sesión. Inténtalo de nuevo.'
+        setErrorMessage(message)
+        notifyError(message)
         return
       }
 
+      notifySuccess('Sesión cerrada correctamente.')
       router.replace('/login')
       router.refresh()
     } catch {
-      setErrorMessage('No fue posible cerrar sesión. Inténtalo de nuevo.')
+      const message = 'No fue posible cerrar sesión. Inténtalo de nuevo.'
+      setErrorMessage(message)
+      notifyError(message)
     } finally {
       setIsSigningOut(false)
     }

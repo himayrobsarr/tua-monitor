@@ -4,6 +4,7 @@ import { AppShell } from '@/components/app-shell'
 import { EditTripForm } from '@/components/edit-trip-form'
 import { PageHeading } from '@/components/page-heading'
 import { createClient } from '@/lib/supabase/server'
+import { requireAdminRole } from '@/lib/roles'
 
 type EditarViajePageProps = {
   params: Promise<{ id: string }>
@@ -14,6 +15,7 @@ export const metadata = {
 }
 
 export default async function EditarViajePage({ params }: EditarViajePageProps) {
+  await requireAdminRole()
   const { id } = await params
   const supabase = await createClient()
   const { data: trip, error } = await supabase.from('trips').select('*').eq('id', id).maybeSingle()

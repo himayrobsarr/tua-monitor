@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
 import { createClient } from '@/lib/supabase/client'
+import { notifyError, notifySuccess } from '@/lib/notifications'
 import type { Database } from '@/types/database'
 
 type EditableTrip = Pick<
@@ -34,7 +35,9 @@ export function EditTripForm({ trip }: { trip: EditableTrip }) {
     const loadingDate = trimmedValue(formData, 'loading_date')
 
     if (!plate || !driver || !loadingDate) {
-      setErrorMessage('Completa los campos obligatorios: placa, conductor y fecha de cargue.')
+      const message = 'Completa los campos obligatorios: placa, conductor y fecha de cargue.'
+      setErrorMessage(message)
+      notifyError(message)
       return
     }
 
@@ -53,14 +56,19 @@ export function EditTripForm({ trip }: { trip: EditableTrip }) {
         .single()
 
       if (error || !data) {
-        setErrorMessage('No fue posible actualizar el viaje. Inténtalo de nuevo.')
+        const message = 'No fue posible actualizar el viaje. Inténtalo de nuevo.'
+        setErrorMessage(message)
+        notifyError(message)
         return
       }
 
-      router.replace(`/viajes/${trip.id}?updated=1`)
+      notifySuccess('Viaje actualizado correctamente.')
+      router.replace(`/viajes/${trip.id}`)
       router.refresh()
     } catch {
-      setErrorMessage('No fue posible conectar con el servicio. Inténtalo de nuevo.')
+      const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
+      setErrorMessage(message)
+      notifyError(message)
     } finally {
       setIsSubmitting(false)
     }
