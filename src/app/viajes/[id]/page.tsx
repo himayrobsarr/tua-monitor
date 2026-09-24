@@ -4,10 +4,11 @@ import { notFound } from 'next/navigation'
 
 import { AppShell } from '@/components/app-shell'
 import { FinishTripButton } from '@/components/finish-trip-button'
+import { NewTripControlForm } from '@/components/new-trip-control-form'
 import { PageHeading } from '@/components/page-heading'
 import { StatusBadge } from '@/components/status-badge'
 import { TripControlCard } from '@/components/trip-control-card'
-import { tripControlDefinitions } from '@/lib/trip-controls'
+import { getCurrentUserRole } from '@/lib/roles'
 import { createClient } from '@/lib/supabase/server'
 
 type ViajeDetailPageProps = {
@@ -21,9 +22,10 @@ export const metadata = {
 export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) {
   const { id } = await params
   const supabase = await createClient()
-  const [{ data: trip, error: tripError }, { data: controls, error: controlsError }] = await Promise.all([
+  const [{ data: trip, error: tripError }, { data: controls, error: controlsError }, role] = await Promise.all([
     supabase.from('trips').select('*').eq('id', id).maybeSingle(),
-    supabase.from('trip_controls').select('*').eq('trip_id', id),
+    supabase.from('trip_controls').select('*').eq('trip_id', id).order('reported_at', { ascending: false }),
+    getCurrentUserRole(),
   ])
 
   if (tripError || !trip) notFound()
@@ -41,7 +43,7 @@ export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) 
     ['Fecha de creación', formatDateTime(trip.created_at)],
     ['Última actualización', formatDateTime(trip.updated_at)],
   ]
-  const controlsByType = new Map(controls?.map((control) => [control.control_type, control]))
+  const isAdmin = role === 'admin'
 
   return (
     <AppShell>
@@ -50,8 +52,8 @@ export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) 
         description="Consulta la información registrada y administra el estado del viaje."
         action={
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Link href={`/viajes/${id}/editar`} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"><Pencil className="size-4" aria-hidden="true" />Editar viaje</Link>
-            {trip.status === 'EN_ROUTE' ? <FinishTripButton tripId={id} /> : null}
+            {isAdmin ? <Link href={`/viajes/${id}/editar`} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"><Pencil className="size-4" aria-hidden="true" />Editar viaje</Link> : null}
+            {isAdmin && trip.status === 'EN_ROUTE' ? <FinishTripButton tripId={id} /> : null}
             <Link href="/viajes" className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"><ArrowLeft className="size-4" aria-hidden="true" />Volver</Link>
           </div>
         }
@@ -63,9 +65,9 @@ export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) 
       <section className="mt-8">
         <div>
           <h2 className="text-xl font-semibold tracking-tight text-slate-950">Controles de monitoreo</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Registra o actualiza los reportes de cada horario de monitoreo.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Registra cada llegada del viaje. Los administradores pueden corregir la fecha y hora reportada.</p>
         </div>
-        {controlsError ? <p role="alert" className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">No fue posible cargar los controles. Inténtalo de nuevo.</p> : <div className="mt-5 grid gap-5 xl:grid-cols-3">{tripControlDefinitions.map(({ type, title }) => <TripControlCard key={type} tripId={id} controlType={type} title={title} control={controlsByType.get(type) ?? null} />)}</div>}
+        {controlsError ? <p role="alert" className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">No fue posible cargar los controles. Inténtalo de nuevo.</p> : role ? <><NewTripControlForm tripId={id} isAdmin={isAdmin} /><div className="mt-5 space-y-4 border-l-2 border-slate-200 pl-0 lg:ml-2 lg:pl-6">{controls?.length ? controls.map((control) => <TripControlCard key={control.id} control={control} isAdmin={isAdmin} />) : <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">Todavía no hay llegadas registradas para este viaje.</p>}</div></> : <p role="alert" className="mt-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">Tu usuario aún no tiene un rol asignado. Solicita a un administrador que lo configure.</p>}
       </section>
     </AppShell>
   )
