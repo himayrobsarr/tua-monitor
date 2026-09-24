@@ -1,4 +1,5 @@
-import { ClipboardList, History, Route } from 'lucide-react'
+import { History, Route } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 
 import { LogoutButton } from '@/components/logout-button'
@@ -17,14 +18,15 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <Link href="/viajes" className="flex items-center gap-2 text-slate-900">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-blue-700 text-white">
-              <ClipboardList className="size-5" aria-hidden="true" />
-            </span>
-            <span>
-              <span className="block font-semibold">TUA Monitor</span>
-              <span className="block text-xs font-medium text-slate-500">Transportadores TUA</span>
-            </span>
+          <Link href="/viajes" className="shrink-0" aria-label="TUA Monitor, ir a viajes">
+            <Image
+              src="/logo-tua-transparent.png"
+              alt="Transportadores Unidos de los Andes TUA S.A."
+              width={907}
+              height={374}
+              priority
+              className="h-auto w-44 sm:w-52"
+            />
           </Link>
           <div className="flex items-center justify-between gap-1 sm:justify-end">
             <nav aria-label="Navegación principal" className="flex items-center gap-1">
