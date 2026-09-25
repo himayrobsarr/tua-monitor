@@ -65,9 +65,9 @@ export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) 
       <section className="mt-8">
         <div>
           <h2 className="text-xl font-semibold tracking-tight text-slate-950">Controles de monitoreo</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Registra cada llegada del viaje. Los administradores pueden corregir la fecha y hora reportada.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Registra las paradas intermedias y la llegada final del viaje. Los administradores pueden corregir cada control.</p>
         </div>
-        {controlsError ? <p role="alert" className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">No fue posible cargar los controles. Inténtalo de nuevo.</p> : role ? <><NewTripControlForm tripId={id} isAdmin={isAdmin} /><div className="mt-5 space-y-4 border-l-2 border-slate-200 pl-0 lg:ml-2 lg:pl-6">{controls?.length ? controls.map((control) => <TripControlCard key={control.id} control={control} isAdmin={isAdmin} />) : <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">Todavía no hay llegadas registradas para este viaje.</p>}</div></> : <p role="alert" className="mt-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">Tu usuario aún no tiene un rol asignado. Solicita a un administrador que lo configure.</p>}
+        {controlsError ? <p role="alert" className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">No fue posible cargar los controles. Inténtalo de nuevo.</p> : role ? <><NewTripControlForm tripId={id} isAdmin={isAdmin} /><div className="mt-5 space-y-4 border-l-2 border-slate-200 pl-0 lg:ml-2 lg:pl-6">{controls?.length ? controls.map((control) => <TripControlCard key={control.id} control={control} isAdmin={isAdmin} />) : <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">Todavía no hay paradas ni llegadas registradas para este viaje.</p>}</div></> : <p role="alert" className="mt-5 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">Tu usuario aún no tiene un rol asignado. Solicita a un administrador que lo configure.</p>}
       </section>
     </AppShell>
   )

@@ -8,12 +8,16 @@ import { notifyError, notifySuccess } from '@/lib/notifications'
 import type { Database } from '@/types/database'
 
 type ExportTrip = Pick<Database['public']['Tables']['trips']['Row'], 'id' | 'plate' | 'driver' | 'product' | 'warehouse' | 'destination' | 'loading_date' | 'observations' | 'status'>
-type ExportControl = Pick<Database['public']['Tables']['trip_controls']['Row'], 'trip_id' | 'reported_location' | 'incident' | 'observation' | 'reported_at' | 'created_at' | 'updated_at'>
+type ExportControl = Pick<Database['public']['Tables']['trip_controls']['Row'], 'trip_id' | 'control_type' | 'reported_location' | 'incident' | 'observation' | 'reported_at' | 'created_at' | 'updated_at'>
 
 const pageSize = 1_000
 
 function downloadName(date: Date) {
   return `MONITOREO_TUA_${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}.xlsx`
+}
+
+function controlTypeLabel(controlType: string | null) {
+  return controlType === 'STOP' ? 'PARADA' : 'LLEGADA FINAL'
 }
 
 async function fetchAll<T>(fetchPage: (from: number, to: number) => Promise<{ data: T[] | null; error: Error | null }>) {
@@ -51,7 +55,7 @@ export function DownloadExcelButton() {
       const supabase = createClient()
       const [trips, controls, ExcelJS] = await Promise.all([
         fetchAll<ExportTrip>(async (from, to) => await supabase.from('trips').select('id, plate, driver, product, warehouse, destination, loading_date, observations, status').in('status', ['EN_ROUTE', 'FINISHED']).order('created_at').range(from, to)),
-        fetchAll<ExportControl>(async (from, to) => await supabase.from('trip_controls').select('trip_id, reported_location, incident, observation, reported_at, created_at, updated_at').order('reported_at').range(from, to)),
+        fetchAll<ExportControl>(async (from, to) => await supabase.from('trip_controls').select('trip_id, control_type, reported_location, incident, observation, reported_at, created_at, updated_at').order('reported_at').range(from, to)),
         import('exceljs'),
       ])
       const tripsById = new Map(trips.map((trip) => [trip.id, trip]))
@@ -63,9 +67,9 @@ export function DownloadExcelButton() {
       trips.forEach((trip, index) => summary.addRow({ number: index + 1, plate: trip.plate, driver: trip.driver, product: trip.product ?? '', warehouse: trip.warehouse ?? '', destination: trip.destination ?? '', loadingDate: new Date(`${trip.loading_date}T00:00:00`), controls: controlsByTrip.get(trip.id) ?? 0, observations: trip.observations ?? '', status: trip.status === 'FINISHED' ? 'FINALIZADO' : 'EN RUTA' }))
       formatSheet(summary, ['G'])
       const detail = workbook.addWorksheet('CONTROLES')
-      detail.columns = [{ header: 'Nº', key: 'number', width: 7 }, { header: 'PLACA', key: 'plate', width: 15 }, { header: 'CONDUCTOR', key: 'driver', width: 24 }, { header: 'PRODUCTO', key: 'product', width: 20 }, { header: 'BODEGA', key: 'warehouse', width: 20 }, { header: 'DESTINO', key: 'destination', width: 24 }, { header: 'UBICACIÓN REPORTADA', key: 'location', width: 26 }, { header: 'FECHA Y HORA DE LLEGADA', key: 'reportedAt', width: 24 }, { header: 'NOVEDAD', key: 'incident', width: 26 }, { header: 'OBSERVACIÓN', key: 'observation', width: 34 }, { header: 'FECHA DE REGISTRO', key: 'createdAt', width: 24 }, { header: 'ÚLTIMA ACTUALIZACIÓN', key: 'updatedAt', width: 24 }]
-      controls.forEach((control, index) => { const trip = tripsById.get(control.trip_id); if (trip) detail.addRow({ number: index + 1, plate: trip.plate, driver: trip.driver, product: trip.product ?? '', warehouse: trip.warehouse ?? '', destination: trip.destination ?? '', location: control.reported_location ?? '', reportedAt: new Date(control.reported_at), incident: control.incident ?? '', observation: control.observation ?? '', createdAt: new Date(control.created_at), updatedAt: new Date(control.updated_at) }) })
-      formatSheet(detail, ['H', 'K', 'L'])
+      detail.columns = [{ header: 'Nº', key: 'number', width: 7 }, { header: 'PLACA', key: 'plate', width: 15 }, { header: 'CONDUCTOR', key: 'driver', width: 24 }, { header: 'PRODUCTO', key: 'product', width: 20 }, { header: 'BODEGA', key: 'warehouse', width: 20 }, { header: 'DESTINO', key: 'destination', width: 24 }, { header: 'TIPO DE CONTROL', key: 'controlType', width: 20 }, { header: 'UBICACIÓN REPORTADA', key: 'location', width: 26 }, { header: 'FECHA Y HORA DEL CONTROL', key: 'reportedAt', width: 24 }, { header: 'NOVEDAD', key: 'incident', width: 26 }, { header: 'OBSERVACIÓN', key: 'observation', width: 34 }, { header: 'FECHA DE REGISTRO', key: 'createdAt', width: 24 }, { header: 'ÚLTIMA ACTUALIZACIÓN', key: 'updatedAt', width: 24 }]
+      controls.forEach((control, index) => { const trip = tripsById.get(control.trip_id); if (trip) detail.addRow({ number: index + 1, plate: trip.plate, driver: trip.driver, product: trip.product ?? '', warehouse: trip.warehouse ?? '', destination: trip.destination ?? '', controlType: controlTypeLabel(control.control_type), location: control.reported_location ?? '', reportedAt: new Date(control.reported_at), incident: control.incident ?? '', observation: control.observation ?? '', createdAt: new Date(control.created_at), updatedAt: new Date(control.updated_at) }) })
+      formatSheet(detail, ['I', 'L', 'M'])
       const buffer = await workbook.xlsx.writeBuffer()
       const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
       const anchor = document.createElement('a')
