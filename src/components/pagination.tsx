@@ -7,15 +7,19 @@ type PaginationProps = {
   pageSize: number
   totalItems: number
   plateQuery: string
+  finishedFrom?: string
+  finishedTo?: string
 }
 
-export function Pagination({ basePath, currentPage, pageSize, totalItems, plateQuery }: PaginationProps) {
+export function Pagination({ basePath, currentPage, pageSize, totalItems, plateQuery, finishedFrom, finishedTo }: PaginationProps) {
   const totalPages = Math.ceil(totalItems / pageSize)
   if (totalPages <= 1) return null
 
   function href(page: number) {
     const params = new URLSearchParams()
     if (plateQuery) params.set('plate', plateQuery)
+    if (finishedFrom) params.set('from', finishedFrom)
+    if (finishedTo) params.set('to', finishedTo)
     if (page > 1) params.set('page', String(page))
     const search = params.toString()
     return search ? `${basePath}?${search}` : basePath
