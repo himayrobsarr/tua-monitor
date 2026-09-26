@@ -2,67 +2,94 @@
 
 import { LoaderCircle, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 
+import { reopenTripAction } from '@/app/viajes/actions'
 import { ConfirmationDialog } from '@/components/confirmation-dialog'
-import { createClient } from '@/lib/supabase/client'
 import { notifyError, notifySuccess } from '@/lib/notifications'
 
-export function ReopenTripButton({ tripId }: { tripId: string }) {
+type ReopenTripButtonProps = {
+  expectedUpdatedAt: string
+  tripId: string
+}
+
+export function ReopenTripButton({ expectedUpdatedAt, tripId }: ReopenTripButtonProps) {
   const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [reason, setReason] = useState('')
 
-  async function handleReopen() {
+  function closeDialog() {
+    setIsDialogOpen(false)
     setErrorMessage('')
-    setIsSubmitting(true)
+    setReason('')
+  }
 
-    try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('trips')
-        .update({ status: 'EN_ROUTE', finished_at: null })
-        .eq('id', tripId)
-        .select('id')
-        .single()
-
-      if (error || !data) {
-        const message = 'No fue posible reabrir el viaje. Inténtalo de nuevo.'
-        setErrorMessage(message)
-        notifyError(message)
-        return
-      }
-
-      notifySuccess('Viaje reabierto correctamente.')
-      router.replace('/historial')
-      router.refresh()
-    } catch {
-      const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
+  function handleReopen() {
+    const normalizedReason = reason.trim()
+    if (!normalizedReason) {
+      const message = 'Escribe el motivo por el que se reabre el viaje.'
       setErrorMessage(message)
       notifyError(message)
-    } finally {
-      setIsSubmitting(false)
+      return
     }
+
+    setErrorMessage('')
+    startTransition(async () => {
+      try {
+        const result = await reopenTripAction({ expectedUpdatedAt, reason: normalizedReason, tripId })
+        if (!result.ok) {
+          setErrorMessage(result.message)
+          notifyError(result.message)
+          if (result.refresh) router.refresh()
+          return
+        }
+
+        notifySuccess(result.message)
+        closeDialog()
+        router.replace(`/viajes/${tripId}`)
+      } catch {
+        const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
+        setErrorMessage(message)
+        notifyError(message)
+      }
+    })
   }
 
   return (
     <div>
-      <button type="button" onClick={() => setIsDialogOpen(true)} disabled={isSubmitting} className="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70">
-        {isSubmitting ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <RotateCcw className="size-4" aria-hidden="true" />}
-        {isSubmitting ? 'Reabriendo…' : 'Reabrir viaje'}
+      <button type="button" onClick={() => { setErrorMessage(''); setIsDialogOpen(true) }} disabled={isPending} className="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70">
+        {isPending ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <RotateCcw className="size-4" aria-hidden="true" />}
+        {isPending ? 'Reabriendo…' : 'Reabrir viaje'}
       </button>
-      {errorMessage ? <p role="alert" className="mt-2 text-sm text-red-700">{errorMessage}</p> : null}
       <ConfirmationDialog
         isOpen={isDialogOpen}
         title="¿Reabrir viaje?"
         description="El viaje volverá a aparecer entre los viajes activos. Los controles existentes se conservarán."
         confirmLabel="Sí, reabrir viaje"
         tone="amber"
-        isConfirming={isSubmitting}
-        onCancel={() => setIsDialogOpen(false)}
+        errorMessage={errorMessage}
+        isConfirming={isPending}
+        onCancel={closeDialog}
         onConfirm={handleReopen}
-      />
+      >
+        <div className="mt-4">
+          <label htmlFor={`reopen-reason-${tripId}`} className="block text-sm font-medium text-slate-700">Motivo de reapertura</label>
+          <textarea
+            id={`reopen-reason-${tripId}`}
+            value={reason}
+            onChange={(event) => { setReason(event.target.value); setErrorMessage('') }}
+            rows={3}
+            maxLength={2000}
+            required
+            autoFocus
+            className="mt-2 block w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
+            placeholder="Explica por qué debe volver a estar en ruta"
+          />
+          <p className="mt-1 text-right text-xs text-slate-500">{reason.length}/2000</p>
+        </div>
+      </ConfirmationDialog>
     </div>
   )
 }
