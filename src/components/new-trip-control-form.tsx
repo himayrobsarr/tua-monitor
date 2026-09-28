@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition, type FormEvent } from 'react'
 
 import { createTripControlAction } from '@/app/viajes/actions'
+import { handleTripActionFailure } from '@/lib/action-feedback'
 import { colombiaLocalDateTimeToIso, toColombiaDateTimeInput } from '@/lib/dates'
 import { notifySuccess } from '@/lib/notifications'
 import type { ControlType, TripStatus } from '@/types/database'
@@ -69,9 +70,10 @@ export function NewTripControlForm({ tripId, isAdmin, tripStatus }: NewTripContr
         })
 
         if (!result.ok) {
-          const message = result.message
-          setErrorMessage(message)
-          if (result.refresh) router.refresh()
+          handleTripActionFailure(result, {
+            refresh: () => router.refresh(),
+            setInlineError: setErrorMessage,
+          })
           return
         }
 

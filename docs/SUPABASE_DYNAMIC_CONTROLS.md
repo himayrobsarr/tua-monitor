@@ -6,8 +6,9 @@ Aplica las migraciones de `supabase/migrations` en orden cronológico. Esta vers
 2. `202609261400_reporter_finished_trip_guard.sql`
 3. `202609261500_atomic_lifecycle_and_audit.sql`
 4. `202609281200_audit_reason_whitespace_guard.sql`
+5. `202609281300_validate_hardened_constraints.sql`
 
-Las migraciones `202609261500` y `202609281200`, junto con el frontend de esta versión, forman una sola entrega: crean los RPC auditados, revocan las escrituras directas que usaba la interfaz anterior y endurecen la validación de los motivos. Programa una ventana breve sin escrituras, aplica las migraciones y publica el frontend inmediatamente después. Si el DDL encuentra un bloqueo por tráfico, la transacción completa se revierte y puede reintentarse fuera de hora pico.
+Las migraciones `202609261500`, `202609281200` y `202609281300`, junto con el frontend de esta versión, forman una sola entrega: crean los RPC auditados, revocan las escrituras directas que usaba la interfaz anterior, endurecen la validación de los motivos y validan las restricciones contra los datos existentes. Programa una ventana breve sin escrituras: aplica las migraciones hasta `202609281200`, ejecuta el inventario descrito abajo, aplica `202609281300` y publica el frontend inmediatamente después. Si el DDL encuentra un bloqueo por tráfico o una fila histórica inválida, la transacción de esa migración se revierte y puede reintentarse después de corregir el inventario o fuera de hora pico.
 
 ## Roles
 
@@ -87,9 +88,20 @@ select c.id, c.trip_id
 from public.trip_controls as c
 left join public.trips as t on t.id = c.trip_id
 where t.id is null;
+
+-- Motivos de auditoría vacíos, compuestos solo por espacios o demasiado largos.
+select id, trip_id, event_type, reason
+from public.trip_events
+where reason is not null
+  and pg_catalog.length(
+    pg_catalog.btrim(
+      reason,
+      U&' \0009\000A\000B\000C\000D\0085\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\200B\2028\2029\202F\205F\2060\3000\FEFF'
+    )
+  ) not between 1 and 2000;
 ```
 
-Cuando el inventario esté limpio, valida las restricciones instaladas como `NOT VALID`:
+Cuando el inventario esté limpio, aplica `202609281300_validate_hardened_constraints.sql`. La migración ejecuta estas validaciones dentro de una sola transacción:
 
 ```sql
 alter table public.trips
@@ -100,11 +112,38 @@ alter table public.trips
 
 alter table public.trip_controls
   validate constraint trip_controls_control_type_v2_check;
+
+alter table public.trip_events
+  validate constraint trip_events_reason_whitespace_v2_check;
 ```
 
 Los controles legados se conservan. Al editarlos, la interfaz obliga a escoger explícitamente si ahora corresponden a `STOP` o `FINAL_ARRIVAL`; nunca los convierte silenciosamente.
 
 ## Verificación posterior
+
+Confirma que las cuatro restricciones quedaron validadas:
+
+```sql
+select c.conname as constraint_name,
+       c.convalidated as validated
+from pg_catalog.pg_constraint as c
+where c.conname in (
+  'trips_status_v2_check',
+  'trips_status_finished_at_v2_check',
+  'trip_controls_control_type_v2_check',
+  'trip_events_reason_whitespace_v2_check'
+)
+order by c.conname;
+```
+
+Las cuatro filas deben devolver `validated = true`. Si las migraciones se aplicaron manualmente desde SQL Editor, ese método no actualiza el historial de Supabase CLI. Antes de adoptar `supabase db push`, enlaza el proyecto, reconcilia como `applied` únicamente las versiones cuyo estado real ya verificaste y confirma el resultado:
+
+```powershell
+supabase migration repair --linked --status applied 202609241345 202609261400 202609261500 202609281200 202609281300
+supabase migration list --linked
+```
+
+No ejecutes `supabase db push` mientras el historial local y remoto siga desincronizado.
 
 Prueba al menos esta matriz con dos usuarios reales:
 

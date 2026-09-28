@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition, type FormEvent } from 'react'
 
 import { updateTripControlAction } from '@/app/viajes/actions'
+import { handleTripActionFailure } from '@/lib/action-feedback'
 import { colombiaLocalDateTimeToIso, formatColombiaDateTime, toColombiaDateTimeInput } from '@/lib/dates'
 import { notifySuccess } from '@/lib/notifications'
 import type { ControlType, Database, TripStatus } from '@/types/database'
@@ -79,8 +80,10 @@ export function TripControlCard({ control, isAdmin, tripStatus }: TripControlCar
         })
 
         if (!result.ok) {
-          setErrorMessage(result.message)
-          if (result.refresh) router.refresh()
+          handleTripActionFailure(result, {
+            refresh: () => router.refresh(),
+            setInlineError: setErrorMessage,
+          })
           return
         }
 

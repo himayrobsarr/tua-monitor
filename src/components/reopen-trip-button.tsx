@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 
 import { reopenTripAction } from '@/app/viajes/actions'
 import { ConfirmationDialog } from '@/components/confirmation-dialog'
+import { handleTripActionFailure } from '@/lib/action-feedback'
 import { notifySuccess } from '@/lib/notifications'
 
 type ReopenTripButtonProps = {
@@ -39,8 +40,10 @@ export function ReopenTripButton({ expectedUpdatedAt, tripId }: ReopenTripButton
       try {
         const result = await reopenTripAction({ expectedUpdatedAt, reason: normalizedReason, tripId })
         if (!result.ok) {
-          setErrorMessage(result.message)
-          if (result.refresh) router.refresh()
+          handleTripActionFailure(result, {
+            refresh: () => router.refresh(),
+            setInlineError: setErrorMessage,
+          })
           return
         }
 

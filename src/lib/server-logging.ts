@@ -2,6 +2,27 @@ import 'server-only'
 
 type ErrorWithCode = { code?: string | null }
 
+export type TripRpcOperation =
+  | 'create_trip_control'
+  | 'finish_trip'
+  | 'reopen_trip'
+  | 'update_trip_control'
+  | 'update_trip_details'
+
+const expectedTripRpcCodes = new Set([
+  'TUA01',
+  'TUA10',
+  'TUA11',
+  'TUA12',
+  'TUA13',
+  'TUA14',
+  'TUA15',
+  'TUA16',
+  'TUA17',
+  'TUA18',
+  'TUA30',
+])
+
 type ServerErrorEvent =
   | 'auth_lookup_failed'
   | 'role_lookup_failed'
@@ -31,6 +52,30 @@ export function logServerError(
     level: 'error',
     event,
     code: error.code ?? 'UNKNOWN',
+    operation,
+  }))
+}
+
+export function logTripRpcError(
+  operation: TripRpcOperation,
+  error: ErrorWithCode,
+) {
+  const code = error.code ?? 'UNKNOWN'
+
+  if (expectedTripRpcCodes.has(code)) {
+    console.log(JSON.stringify({
+      level: 'warning',
+      event: 'trip_rpc_rejected',
+      code,
+      operation,
+    }))
+    return
+  }
+
+  console.error(JSON.stringify({
+    level: 'error',
+    event: 'trip_rpc_failed',
+    code,
     operation,
   }))
 }

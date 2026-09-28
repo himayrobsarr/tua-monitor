@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 
 import { finishTripAction } from '@/app/viajes/actions'
 import { ConfirmationDialog } from '@/components/confirmation-dialog'
+import { handleTripActionFailure } from '@/lib/action-feedback'
 import { notifySuccess } from '@/lib/notifications'
 
 type FinishTripButtonProps = {
@@ -26,8 +27,10 @@ export function FinishTripButton({ expectedUpdatedAt, tripId }: FinishTripButton
       try {
         const result = await finishTripAction({ expectedUpdatedAt, tripId })
         if (!result.ok) {
-          setErrorMessage(result.message)
-          if (result.refresh) router.refresh()
+          handleTripActionFailure(result, {
+            refresh: () => router.refresh(),
+            setInlineError: setErrorMessage,
+          })
           return
         }
 

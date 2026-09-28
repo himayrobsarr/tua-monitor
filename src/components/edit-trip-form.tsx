@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition, type FormEvent } from 'react'
 
 import { updateTripDetailsAction } from '@/app/viajes/actions'
+import { handleTripActionFailure } from '@/lib/action-feedback'
 import { notifySuccess } from '@/lib/notifications'
 import type { Database } from '@/types/database'
 
@@ -68,8 +69,10 @@ export function EditTripForm({ trip }: { trip: EditableTrip }) {
         })
 
         if (!result.ok) {
-          setErrorMessage(result.message)
-          if (result.refresh) router.refresh()
+          handleTripActionFailure(result, {
+            refresh: () => router.refresh(),
+            setInlineError: setErrorMessage,
+          })
           return
         }
 

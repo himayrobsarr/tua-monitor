@@ -12,6 +12,13 @@ const migrationPath = join(
   '202609281200_audit_reason_whitespace_guard.sql',
 )
 const migration = await readFile(migrationPath, 'utf8')
+const validationMigrationPath = join(
+  repositoryRoot,
+  'supabase',
+  'migrations',
+  '202609281300_validate_hardened_constraints.sql',
+)
+const validationMigration = await readFile(validationMigrationPath, 'utf8')
 
 test('la base rechaza motivos compuestos solo por espacios visibles o Unicode', () => {
   assert.match(migration, /^begin;/)
@@ -28,4 +35,25 @@ test('la base rechaza motivos compuestos solo por espacios visibles o Unicode', 
   assert.match(migration, /revoke all on function public\.enforce_trip_event_reason\(\)/)
   assert.match(migration, /trip_events_reason_whitespace_v2_check/)
   assert.match(migration, /not valid;/)
+})
+
+test('la migración posterior valida todas las restricciones endurecidas de forma acotada', () => {
+  assert.match(validationMigration, /^begin;/)
+  assert.match(validationMigration, /set local lock_timeout = '5s';/)
+  assert.match(validationMigration, /set local statement_timeout = '2min';/)
+
+  for (const constraint of [
+    'trips_status_v2_check',
+    'trips_status_finished_at_v2_check',
+    'trip_controls_control_type_v2_check',
+    'trip_events_reason_whitespace_v2_check',
+  ]) {
+    assert.match(
+      validationMigration,
+      new RegExp(`validate constraint ${constraint};`),
+      `falta validar ${constraint}`,
+    )
+  }
+
+  assert.match(validationMigration, /commit;\s*$/)
 })

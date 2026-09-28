@@ -44,3 +44,38 @@ test('los fallos críticos se registran sin contexto sensible', () => {
 
   assert.doesNotMatch(loggingCalls, /plateQuery|finishedFrom|finishedTo|user\.id|tripId|email/i)
 })
+
+test('los rechazos RPC esperados no se clasifican como errores de runtime', () => {
+  for (const code of [
+    'TUA01',
+    'TUA10',
+    'TUA11',
+    'TUA12',
+    'TUA13',
+    'TUA14',
+    'TUA15',
+    'TUA16',
+    'TUA17',
+    'TUA18',
+    'TUA30',
+  ]) {
+    assert.match(logger, new RegExp(`['"]${code}['"]`), `Falta clasificar ${code} como rechazo esperado`)
+  }
+
+  assert.match(logger, /expectedTripRpcCodes\.has\(code\)/)
+  assert.match(logger, /console\.log\(JSON\.stringify\(\{\s*level:\s*['"]warning['"],\s*event:\s*['"]trip_rpc_rejected['"]/s)
+  assert.match(logger, /console\.error\(JSON\.stringify\(\{\s*level:\s*['"]error['"],\s*event:\s*['"]trip_rpc_failed['"]/s)
+  assert.doesNotMatch(logger, /error\.(?:message|details|hint|stack)/)
+
+  const expectedCodes = logger.match(/const expectedTripRpcCodes = new Set\(\[([\s\S]*?)\]\)/)?.[1] ?? ''
+  for (const code of ['22007', '22P02', '42501']) {
+    assert.doesNotMatch(
+      expectedCodes,
+      new RegExp(`['"]${code}['"]`),
+      `${code} debe conservarse como fallo operativo`,
+    )
+  }
+
+  assert.match(actions, /logTripRpcError\(operation,\s*error\)/)
+  assert.doesNotMatch(actions, /console\.(?:log|warn|error)\(/)
+})

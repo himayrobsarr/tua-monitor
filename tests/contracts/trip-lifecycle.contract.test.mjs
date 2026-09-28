@@ -542,9 +542,7 @@ test('la aplicación muta el ciclo de vida solo mediante Server Actions y RPC ti
 })
 
 test('los errores remotos generan diagnósticos seguros y estructurados', () => {
-  assert.match(actionsSource, /event:\s*['"]trip_rpc_failed['"]/)
-  assert.match(actionsSource, /code:\s*error\.code\s*\?\?\s*['"]UNKNOWN['"]/)
-  assert.match(actionsSource, /operation,/)
+  assert.match(actionsSource, /logTripRpcError\(operation,\s*error\)/)
   assert.doesNotMatch(actionsSource, /error\.(?:message|details|hint)/)
 
   assert.match(

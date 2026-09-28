@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { logServerError } from '@/lib/server-logging'
+import { logServerError, logTripRpcError, type TripRpcOperation } from '@/lib/server-logging'
 import { createClient } from '@/lib/supabase/server'
 import type {
   CreateTripControlInput,
@@ -63,13 +63,8 @@ function validation(message: string, field?: 'reason'): TripActionResult {
   return { ok: false, code: 'VALIDATION', field, message }
 }
 
-function mapRpcError(error: RpcError, fallback: string, operation: string): TripActionResult {
-  console.error(JSON.stringify({
-    level: 'error',
-    event: 'trip_rpc_failed',
-    code: error.code ?? 'UNKNOWN',
-    operation,
-  }))
+function mapRpcError(error: RpcError, fallback: string, operation: TripRpcOperation): TripActionResult {
+  logTripRpcError(operation, error)
 
   switch (error.code) {
     case 'TUA01':
