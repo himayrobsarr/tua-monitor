@@ -31,7 +31,7 @@ from auth.users
 order by created_at;
 ```
 
-El usuario debe cerrar e iniciar sesión después de asignar o cambiar su rol.
+Después de asignar o cambiar el rol, el usuario debe recargar o navegar de nuevo. Si la vista continúa desactualizada, puede cerrar sesión e ingresar otra vez.
 
 Permisos efectivos:
 

@@ -10,8 +10,9 @@ import { Pagination } from '@/components/pagination'
 import { ReopenTripButton } from '@/components/reopen-trip-button'
 import { StatusBadge } from '@/components/status-badge'
 import { formatColombiaDateTime, formatDateOnly } from '@/lib/dates'
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentUserRole } from '@/lib/roles'
+import { logServerError } from '@/lib/server-logging'
+import { createClient } from '@/lib/supabase/server'
 
 const pageSize = 25
 
@@ -92,10 +93,16 @@ export default async function HistorialPage({ searchParams }: HistorialPageProps
     if (finishedTo) recoveryQuery = recoveryQuery.lt('finished_at', startOfColombiaDay(nextCalendarDay(finishedTo)))
 
     const { count: recoveryCount, error: recoveryError } = await recoveryQuery
-    if (!recoveryError) {
+    if (recoveryError) {
+      logServerError('trip_history_query_failed', 'count_finished_trips', recoveryError)
+    } else {
       const recoveryPage = Math.max(1, Math.ceil((recoveryCount ?? 0) / pageSize))
       redirect(historialHref(recoveryPage, plateQuery, finishedFrom, finishedTo))
     }
+  }
+
+  if (error && (error.code !== 'PGRST103' || currentPage === 1)) {
+    logServerError('trip_history_query_failed', 'select_finished_trips', error)
   }
 
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize))

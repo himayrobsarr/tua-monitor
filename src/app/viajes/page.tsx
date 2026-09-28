@@ -9,8 +9,9 @@ import { PageHeading } from '@/components/page-heading'
 import { Pagination } from '@/components/pagination'
 import { StatusBadge } from '@/components/status-badge'
 import { formatDateOnly } from '@/lib/dates'
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentUserRole } from '@/lib/roles'
+import { logServerError } from '@/lib/server-logging'
+import { createClient } from '@/lib/supabase/server'
 
 const pageSize = 25
 
@@ -61,10 +62,16 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
     if (plateQuery) recoveryQuery = recoveryQuery.ilike('plate', `%${plateQuery}%`)
 
     const { count: recoveryCount, error: recoveryError } = await recoveryQuery
-    if (!recoveryError) {
+    if (recoveryError) {
+      logServerError('trip_list_query_failed', 'count_en_route_trips', recoveryError)
+    } else {
       const recoveryPage = Math.max(1, Math.ceil((recoveryCount ?? 0) / pageSize))
       redirect(viajesHref(recoveryPage, plateQuery))
     }
+  }
+
+  if (error && (error.code !== 'PGRST103' || currentPage === 1)) {
+    logServerError('trip_list_query_failed', 'select_en_route_trips', error)
   }
 
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize))

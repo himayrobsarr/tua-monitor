@@ -547,8 +547,9 @@ test('los errores remotos generan diagnósticos seguros y estructurados', () => 
   assert.match(actionsSource, /operation,/)
   assert.doesNotMatch(actionsSource, /error\.(?:message|details|hint)/)
 
-  assert.match(detailPageSource, /event:\s*['"]trip_events_query_failed['"]/)
-  assert.match(detailPageSource, /code:\s*eventsError\.code\s*\?\?\s*['"]UNKNOWN['"]/)
-  assert.match(detailPageSource, /operation:\s*['"]select_trip_events['"]/)
+  assert.match(
+    detailPageSource,
+    /logServerError\(['"]trip_events_query_failed['"],\s*['"]select_trip_events['"],\s*eventsError\)/,
+  )
   assert.doesNotMatch(detailPageSource, /eventsError\.(?:message|details|hint)/)
 })

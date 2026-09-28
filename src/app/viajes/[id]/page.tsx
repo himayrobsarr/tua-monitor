@@ -12,7 +12,9 @@ import { TripControlCard } from '@/components/trip-control-card'
 import { formatColombiaDateTime, formatDateOnly } from '@/lib/dates'
 import { isUuid } from '@/lib/identifiers'
 import { getCurrentUserRole } from '@/lib/roles'
+import { logServerError } from '@/lib/server-logging'
 import { createClient } from '@/lib/supabase/server'
+import { summarizeTripEventChanges } from '@/lib/trip-event-changes'
 import type { TripEventType } from '@/types/database'
 
 type ViajeDetailPageProps = {
@@ -32,6 +34,21 @@ const eventLabels: Record<TripEventType, string> = {
   TRIP_UPDATED: 'Información del viaje corregida',
 }
 
+function AuditValue({ expandLabel, label, value, valueFull }: {
+  expandLabel: string
+  label: string
+  value: string
+  valueFull?: string
+}) {
+  return <div>
+    <p><span className="font-medium text-slate-500">{label}:</span> {value}</p>
+    {valueFull ? <details className="mt-1">
+      <summary className="cursor-pointer text-xs font-semibold text-blue-700">{expandLabel}</summary>
+      <p className="mt-1 whitespace-pre-wrap break-words rounded-md bg-white p-2 text-xs text-slate-700">{valueFull}</p>
+    </details> : null}
+  </div>
+}
+
 export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) {
   const { id } = await params
   if (!isUuid(id)) notFound()
@@ -40,26 +57,20 @@ export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) 
   const [{ data: trip, error: tripError }, { data: controls, error: controlsError }, { data: events, error: eventsError }, role] = await Promise.all([
     supabase.from('trips').select('*').eq('id', id).maybeSingle(),
     supabase.from('trip_controls').select('*').eq('trip_id', id).order('reported_at', { ascending: false }),
-    supabase.from('trip_events').select('id, event_type, actor_id, actor_role, occurred_at, reason').eq('trip_id', id).order('occurred_at', { ascending: false }).order('id', { ascending: false }).limit(100),
+    supabase.from('trip_events').select('id, event_type, actor_id, actor_role, occurred_at, reason, before_state, after_state').eq('trip_id', id).order('occurred_at', { ascending: false }).order('id', { ascending: false }).limit(100),
     getCurrentUserRole(),
   ])
 
   if (eventsError) {
-    console.error(JSON.stringify({
-      level: 'error',
-      event: 'trip_events_query_failed',
-      code: eventsError.code ?? 'UNKNOWN',
-      operation: 'select_trip_events',
-    }))
+    logServerError('trip_events_query_failed', 'select_trip_events', eventsError)
+  }
+
+  if (controlsError) {
+    logServerError('trip_controls_query_failed', 'select_trip_controls', controlsError)
   }
 
   if (tripError) {
-    console.error(JSON.stringify({
-      level: 'error',
-      event: 'trip_query_failed',
-      code: tripError.code ?? 'UNKNOWN',
-      operation: 'select_trip',
-    }))
+    logServerError('trip_query_failed', 'select_trip', tripError)
     throw new Error('TUA_TRIP_LOAD_FAILED')
   }
 
@@ -113,15 +124,30 @@ export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) 
       {isAdmin ? <section className="mt-8">
         <h2 className="text-xl font-semibold tracking-tight text-slate-950">Bitácora de cambios</h2>
         <p className="mt-1 text-sm leading-6 text-slate-600">Últimos 100 eventos de acciones administrativas y controles, conservados por la base de datos.</p>
-        {eventsError ? <p role="alert" className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">No fue posible cargar la bitácora. Verifica que la migración de auditoría esté aplicada.</p> : events?.length ? <ol className="mt-5 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          {events.map((event) => <li key={event.id} className="p-4 sm:p-5">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <p className="font-semibold text-slate-950">{eventLabels[event.event_type]}</p>
-              <time dateTime={event.occurred_at} className="text-xs text-slate-500">{formatColombiaDateTime(event.occurred_at)}</time>
-            </div>
-            <p className="mt-1 text-xs text-slate-500">Actor: {event.actor_role === 'admin' ? 'administrador' : event.actor_role ?? 'sistema'}{event.actor_id ? ` · ${event.actor_id.slice(0, 8)}` : ''}</p>
-            {event.reason ? <p className="mt-3 whitespace-pre-wrap rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"><span className="font-semibold">Motivo:</span> {event.reason}</p> : null}
-          </li>)}
+        {eventsError ? <p role="alert" className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">No fue posible cargar la bitácora. Recarga la página e inténtalo de nuevo.</p> : events?.length ? <ol className="mt-5 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          {events.map((event) => {
+            const changes = summarizeTripEventChanges(event.event_type, event.before_state, event.after_state)
+
+            return <li key={event.id} className="p-4 sm:p-5">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <p className="font-semibold text-slate-950">{eventLabels[event.event_type]}</p>
+                <time dateTime={event.occurred_at} className="text-xs text-slate-500">{formatColombiaDateTime(event.occurred_at)}</time>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">Actor: {event.actor_role === 'admin' ? 'administrador' : event.actor_role ?? 'sistema'}{event.actor_id ? ` · ${event.actor_id.slice(0, 8)}` : ''}</p>
+              {changes.length ? <dl aria-label="Resumen de cambios" className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                {changes.map((change) => <div key={change.key} className="rounded-lg bg-slate-50 px-3 py-2">
+                  <dt className="font-semibold text-slate-700">{change.label}</dt>
+                  <dd className="mt-1 space-y-1 break-words text-slate-700">
+                    {change.before === undefined ? <AuditValue label="Registrado" value={change.after} valueFull={change.afterFull} expandLabel="Ver valor completo registrado" /> : <>
+                      <AuditValue label="Antes" value={change.before} valueFull={change.beforeFull} expandLabel="Ver valor completo anterior" />
+                      <AuditValue label="Ahora" value={change.after} valueFull={change.afterFull} expandLabel="Ver valor completo actual" />
+                    </>}
+                  </dd>
+                </div>)}
+              </dl> : <p className="mt-3 text-sm text-slate-500">No hubo cambios visibles en los datos operativos.</p>}
+              {event.reason ? <p className="mt-3 whitespace-pre-wrap break-words rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"><span className="font-semibold">Motivo:</span> {event.reason}</p> : null}
+            </li>
+          })}
         </ol> : <p className="mt-5 rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-600">Aún no hay eventos auditados para este viaje.</p>}
       </section> : null}
     </AppShell>

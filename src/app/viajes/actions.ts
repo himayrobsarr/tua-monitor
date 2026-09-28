@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { logServerError } from '@/lib/server-logging'
 import { createClient } from '@/lib/supabase/server'
 import type {
   CreateTripControlInput,
@@ -140,6 +141,10 @@ async function authorize(allowedRoles: AppRole[]): Promise<
   const supabase = await createClient()
   const { data: authData, error: authError } = await supabase.auth.getUser()
 
+  if (authError) {
+    logServerError('auth_lookup_failed', 'get_authenticated_user', authError)
+  }
+
   if (authError || !authData.user) {
     return {
       ok: false,
@@ -159,6 +164,8 @@ async function authorize(allowedRoles: AppRole[]): Promise<
     .maybeSingle()
 
   if (roleError) {
+    logServerError('role_lookup_failed', 'select_current_user_role', roleError)
+
     return {
       ok: false,
       result: {
