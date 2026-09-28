@@ -6,7 +6,7 @@ import { useState, useTransition, type FormEvent } from 'react'
 
 import { updateTripControlAction } from '@/app/viajes/actions'
 import { colombiaLocalDateTimeToIso, formatColombiaDateTime, toColombiaDateTimeInput } from '@/lib/dates'
-import { notifyError, notifySuccess } from '@/lib/notifications'
+import { notifySuccess } from '@/lib/notifications'
 import type { ControlType, Database, TripStatus } from '@/types/database'
 
 type TripControl = Database['public']['Tables']['trip_controls']['Row']
@@ -50,21 +50,18 @@ export function TripControlCard({ control, isAdmin, tripStatus }: TripControlCar
     if (selectedType !== 'STOP' && selectedType !== 'FINAL_ARRIVAL') {
       const message = 'Selecciona si el registro corresponde a una parada o una llegada final.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
     if (!location || !reportedAtIso) {
       const message = 'Completa la ubicación y la fecha/hora del control.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
     if (requiresReason && !reason) {
       const message = 'Escribe el motivo de la corrección para guardar los cambios.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
@@ -83,7 +80,6 @@ export function TripControlCard({ control, isAdmin, tripStatus }: TripControlCar
 
         if (!result.ok) {
           setErrorMessage(result.message)
-          notifyError(result.message)
           if (result.refresh) router.refresh()
           return
         }
@@ -94,7 +90,6 @@ export function TripControlCard({ control, isAdmin, tripStatus }: TripControlCar
       } catch {
         const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
         setErrorMessage(message)
-        notifyError(message)
       }
     })
   }

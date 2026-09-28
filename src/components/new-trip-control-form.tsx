@@ -6,7 +6,7 @@ import { useState, useTransition, type FormEvent } from 'react'
 
 import { createTripControlAction } from '@/app/viajes/actions'
 import { colombiaLocalDateTimeToIso, toColombiaDateTimeInput } from '@/lib/dates'
-import { notifyError, notifySuccess } from '@/lib/notifications'
+import { notifySuccess } from '@/lib/notifications'
 import type { ControlType, TripStatus } from '@/types/database'
 
 function initialDateTime() {
@@ -40,14 +40,12 @@ export function NewTripControlForm({ tripId, isAdmin, tripStatus }: NewTripContr
     if (!reportedLocation) {
       const message = 'Ingresa la ubicación reportada.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
     if (requiresReason && !reason) {
       const message = 'Escribe el motivo para agregar un control a un viaje finalizado.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
@@ -55,7 +53,6 @@ export function NewTripControlForm({ tripId, isAdmin, tripStatus }: NewTripContr
     if (isAdmin && !reportedAtIso) {
       const message = 'Ingresa una fecha y hora válidas para el control.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
@@ -74,7 +71,6 @@ export function NewTripControlForm({ tripId, isAdmin, tripStatus }: NewTripContr
         if (!result.ok) {
           const message = result.message
           setErrorMessage(message)
-          notifyError(message)
           if (result.refresh) router.refresh()
           return
         }
@@ -85,7 +81,6 @@ export function NewTripControlForm({ tripId, isAdmin, tripStatus }: NewTripContr
       } catch {
         const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
         setErrorMessage(message)
-        notifyError(message)
       }
     })
   }

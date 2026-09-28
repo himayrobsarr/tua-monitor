@@ -6,7 +6,7 @@ import { useState, useTransition } from 'react'
 
 import { reopenTripAction } from '@/app/viajes/actions'
 import { ConfirmationDialog } from '@/components/confirmation-dialog'
-import { notifyError, notifySuccess } from '@/lib/notifications'
+import { notifySuccess } from '@/lib/notifications'
 
 type ReopenTripButtonProps = {
   expectedUpdatedAt: string
@@ -31,7 +31,6 @@ export function ReopenTripButton({ expectedUpdatedAt, tripId }: ReopenTripButton
     if (!normalizedReason) {
       const message = 'Escribe el motivo por el que se reabre el viaje.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
@@ -41,7 +40,6 @@ export function ReopenTripButton({ expectedUpdatedAt, tripId }: ReopenTripButton
         const result = await reopenTripAction({ expectedUpdatedAt, reason: normalizedReason, tripId })
         if (!result.ok) {
           setErrorMessage(result.message)
-          notifyError(result.message)
           if (result.refresh) router.refresh()
           return
         }
@@ -52,7 +50,6 @@ export function ReopenTripButton({ expectedUpdatedAt, tripId }: ReopenTripButton
       } catch {
         const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
         setErrorMessage(message)
-        notifyError(message)
       }
     })
   }

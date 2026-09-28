@@ -6,7 +6,7 @@ import { useState, useTransition } from 'react'
 
 import { finishTripAction } from '@/app/viajes/actions'
 import { ConfirmationDialog } from '@/components/confirmation-dialog'
-import { notifyError, notifySuccess } from '@/lib/notifications'
+import { notifySuccess } from '@/lib/notifications'
 
 type FinishTripButtonProps = {
   expectedUpdatedAt: string
@@ -27,7 +27,6 @@ export function FinishTripButton({ expectedUpdatedAt, tripId }: FinishTripButton
         const result = await finishTripAction({ expectedUpdatedAt, tripId })
         if (!result.ok) {
           setErrorMessage(result.message)
-          notifyError(result.message)
           if (result.refresh) router.refresh()
           return
         }
@@ -38,7 +37,6 @@ export function FinishTripButton({ expectedUpdatedAt, tripId }: FinishTripButton
       } catch {
         const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
         setErrorMessage(message)
-        notifyError(message)
       }
     })
   }

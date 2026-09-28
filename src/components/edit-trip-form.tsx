@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition, type FormEvent } from 'react'
 
 import { updateTripDetailsAction } from '@/app/viajes/actions'
-import { notifyError, notifySuccess } from '@/lib/notifications'
+import { notifySuccess } from '@/lib/notifications'
 import type { Database } from '@/types/database'
 
 type EditableTrip = Pick<
@@ -39,14 +39,12 @@ export function EditTripForm({ trip }: { trip: EditableTrip }) {
     if (!plate || !driver || !loadingDate) {
       const message = 'Completa los campos obligatorios: placa, conductor y fecha de cargue.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
     if (requiresReason && !reason) {
       const message = 'Escribe el motivo de la corrección para guardar los cambios.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
@@ -71,7 +69,6 @@ export function EditTripForm({ trip }: { trip: EditableTrip }) {
 
         if (!result.ok) {
           setErrorMessage(result.message)
-          notifyError(result.message)
           if (result.refresh) router.refresh()
           return
         }
@@ -81,7 +78,6 @@ export function EditTripForm({ trip }: { trip: EditableTrip }) {
       } catch {
         const message = 'No fue posible conectar con el servicio. Inténtalo de nuevo.'
         setErrorMessage(message)
-        notifyError(message)
       }
     })
   }

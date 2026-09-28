@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, type FormEvent } from 'react'
 
 import { createClient } from '@/lib/supabase/client'
-import { notifyError, notifySuccess } from '@/lib/notifications'
+import { notifySuccess } from '@/lib/notifications'
 
 export function LoginForm() {
   const router = useRouter()
@@ -23,14 +23,12 @@ export function LoginForm() {
     if (!email) {
       const message = 'Ingresa tu correo electrónico.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
     if (!password) {
       const message = 'Ingresa tu contraseña.'
       setErrorMessage(message)
-      notifyError(message)
       return
     }
 
@@ -42,7 +40,6 @@ export function LoginForm() {
       if (error) {
         const message = 'Correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.'
         setErrorMessage(message)
-        notifyError(message)
         return
       }
 
@@ -52,7 +49,6 @@ export function LoginForm() {
     } catch {
       const message = 'No fue posible conectar con el servicio de autenticación. Inténtalo de nuevo.'
       setErrorMessage(message)
-      notifyError(message)
     } finally {
       setIsSubmitting(false)
     }

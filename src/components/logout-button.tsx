@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { createClient } from '@/lib/supabase/client'
-import { notifyError, notifySuccess } from '@/lib/notifications'
+import { notifySuccess } from '@/lib/notifications'
 
 export function LogoutButton() {
   const router = useRouter()
@@ -23,7 +23,6 @@ export function LogoutButton() {
       if (error) {
         const message = 'No fue posible cerrar sesión. Inténtalo de nuevo.'
         setErrorMessage(message)
-        notifyError(message)
         return
       }
 
@@ -33,7 +32,6 @@ export function LogoutButton() {
     } catch {
       const message = 'No fue posible cerrar sesión. Inténtalo de nuevo.'
       setErrorMessage(message)
-      notifyError(message)
     } finally {
       setIsSigningOut(false)
     }
