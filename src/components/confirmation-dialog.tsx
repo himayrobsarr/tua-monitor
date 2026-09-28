@@ -55,7 +55,7 @@ export function ConfirmationDialog({
     if (!dialog.open) dialog.showModal()
 
     const focusFrame = window.requestAnimationFrame(() => {
-      const preferredFocus = dialog.querySelector<HTMLElement>('[autofocus]')
+      const preferredFocus = dialog.querySelector<HTMLElement>('[data-dialog-autofocus]')
         ?? cancelButtonRef.current
       preferredFocus?.focus()
     })

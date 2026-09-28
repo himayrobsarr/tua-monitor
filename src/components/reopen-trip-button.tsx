@@ -83,7 +83,7 @@ export function ReopenTripButton({ expectedUpdatedAt, tripId }: ReopenTripButton
             rows={3}
             maxLength={2000}
             required
-            autoFocus
+            data-dialog-autofocus
             className="mt-2 block w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-950 outline-none transition focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
             placeholder="Explica por qué debe volver a estar en ruta"
           />
