@@ -81,6 +81,23 @@ export default async function HistorialPage({ searchParams }: HistorialPageProps
     ? { data: [], error: null, count: 0 }
     : await query.range((currentPage - 1) * pageSize, currentPage * pageSize - 1)
 
+  if (!rangeError && error?.code === 'PGRST103' && currentPage > 1) {
+    let recoveryQuery = supabase
+      .from('trips')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'FINISHED')
+
+    if (plateQuery) recoveryQuery = recoveryQuery.ilike('plate', `%${plateQuery}%`)
+    if (finishedFrom) recoveryQuery = recoveryQuery.gte('finished_at', startOfColombiaDay(finishedFrom))
+    if (finishedTo) recoveryQuery = recoveryQuery.lt('finished_at', startOfColombiaDay(nextCalendarDay(finishedTo)))
+
+    const { count: recoveryCount, error: recoveryError } = await recoveryQuery
+    if (!recoveryError) {
+      const recoveryPage = Math.max(1, Math.ceil((recoveryCount ?? 0) / pageSize))
+      redirect(historialHref(recoveryPage, plateQuery, finishedFrom, finishedTo))
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize))
   if (!rangeError && !error && currentPage > totalPages) {
     redirect(historialHref(totalPages, plateQuery, finishedFrom, finishedTo))

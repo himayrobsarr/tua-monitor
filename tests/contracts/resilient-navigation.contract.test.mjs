@@ -31,6 +31,8 @@ test('las páginas fuera de rango vuelven a una página válida', async () => {
 
   assert.match(activeTrips, /currentPage > totalPages[\s\S]*redirect\(viajesHref/)
   assert.match(history, /currentPage > totalPages[\s\S]*redirect\(historialHref/)
+  assert.match(activeTrips, /error\?\.code === ['"]PGRST103['"][\s\S]*head: true[\s\S]*redirect\(viajesHref/)
+  assert.match(history, /error\?\.code === ['"]PGRST103['"][\s\S]*head: true[\s\S]*redirect\(historialHref/)
 })
 
 test('un administrador puede reabrir desde el detalle finalizado', async () => {

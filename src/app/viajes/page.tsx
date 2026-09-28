@@ -52,6 +52,21 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
 
   const { data: trips, error, count } = await query.range((currentPage - 1) * pageSize, currentPage * pageSize - 1)
 
+  if (error?.code === 'PGRST103' && currentPage > 1) {
+    let recoveryQuery = supabase
+      .from('trips')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'EN_ROUTE')
+
+    if (plateQuery) recoveryQuery = recoveryQuery.ilike('plate', `%${plateQuery}%`)
+
+    const { count: recoveryCount, error: recoveryError } = await recoveryQuery
+    if (!recoveryError) {
+      const recoveryPage = Math.max(1, Math.ceil((recoveryCount ?? 0) / pageSize))
+      redirect(viajesHref(recoveryPage, plateQuery))
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize))
   if (!error && currentPage > totalPages) redirect(viajesHref(totalPages, plateQuery))
 
