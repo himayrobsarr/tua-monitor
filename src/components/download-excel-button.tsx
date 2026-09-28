@@ -24,7 +24,9 @@ function downloadName(date: Date) {
 }
 
 function controlTypeLabel(controlType: string | null) {
-  return controlType === 'STOP' ? 'PARADA' : 'LLEGADA FINAL'
+  if (controlType === 'STOP') return 'PARADA'
+  if (controlType === 'FINAL_ARRIVAL') return 'LLEGADA FINAL'
+  return controlType ? `CONTROL LEGADO (${controlType})` : 'CONTROL LEGADO'
 }
 
 function colombiaDayStart(date: string, nextDay = false) {

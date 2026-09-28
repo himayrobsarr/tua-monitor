@@ -1,5 +1,6 @@
 import { Archive, Search } from 'lucide-react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { AppShell } from '@/components/app-shell'
 import { DownloadExcelButton } from '@/components/download-excel-button'
@@ -45,6 +46,16 @@ function nextCalendarDay(date: string) {
   return nextDate.toISOString().slice(0, 10)
 }
 
+function historialHref(page: number, plateQuery: string, finishedFrom: string, finishedTo: string) {
+  const params = new URLSearchParams()
+  if (plateQuery) params.set('plate', plateQuery)
+  if (finishedFrom) params.set('from', finishedFrom)
+  if (finishedTo) params.set('to', finishedTo)
+  if (page > 1) params.set('page', String(page))
+  const search = params.toString()
+  return search ? `/historial?${search}` : '/historial'
+}
+
 export default async function HistorialPage({ searchParams }: HistorialPageProps) {
   const params = await searchParams
   const plateQuery = typeof params.plate === 'string' ? params.plate.trim().toUpperCase() : ''
@@ -69,6 +80,11 @@ export default async function HistorialPage({ searchParams }: HistorialPageProps
   const { data: trips, error, count } = rangeError
     ? { data: [], error: null, count: 0 }
     : await query.range((currentPage - 1) * pageSize, currentPage * pageSize - 1)
+
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize))
+  if (!rangeError && !error && currentPage > totalPages) {
+    redirect(historialHref(totalPages, plateQuery, finishedFrom, finishedTo))
+  }
 
   return (
     <AppShell>

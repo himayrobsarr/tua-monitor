@@ -1,5 +1,6 @@
 import { Plus, Search, Truck } from 'lucide-react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { AppShell } from '@/components/app-shell'
 import { DownloadExcelButton } from '@/components/download-excel-button'
@@ -26,6 +27,14 @@ function pageFromParam(value: string | string[] | undefined) {
   return Number.isSafeInteger(page) && page > 0 ? page : 1
 }
 
+function viajesHref(page: number, plateQuery: string) {
+  const params = new URLSearchParams()
+  if (plateQuery) params.set('plate', plateQuery)
+  if (page > 1) params.set('page', String(page))
+  const search = params.toString()
+  return search ? `/viajes?${search}` : '/viajes'
+}
+
 export default async function ViajesPage({ searchParams }: ViajesPageProps) {
   const params = await searchParams
   const plateQuery = typeof params.plate === 'string' ? params.plate.trim().toUpperCase() : ''
@@ -42,6 +51,9 @@ export default async function ViajesPage({ searchParams }: ViajesPageProps) {
   if (plateQuery) query = query.ilike('plate', `%${plateQuery}%`)
 
   const { data: trips, error, count } = await query.range((currentPage - 1) * pageSize, currentPage * pageSize - 1)
+
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / pageSize))
+  if (!error && currentPage > totalPages) redirect(viajesHref(totalPages, plateQuery))
 
   return (
     <AppShell>

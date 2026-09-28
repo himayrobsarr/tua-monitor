@@ -6,6 +6,7 @@ import { AppShell } from '@/components/app-shell'
 import { FinishTripButton } from '@/components/finish-trip-button'
 import { NewTripControlForm } from '@/components/new-trip-control-form'
 import { PageHeading } from '@/components/page-heading'
+import { ReopenTripButton } from '@/components/reopen-trip-button'
 import { StatusBadge } from '@/components/status-badge'
 import { TripControlCard } from '@/components/trip-control-card'
 import { formatColombiaDateTime, formatDateOnly } from '@/lib/dates'
@@ -49,7 +50,17 @@ export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) 
     }))
   }
 
-  if (tripError || !trip) notFound()
+  if (tripError) {
+    console.error(JSON.stringify({
+      level: 'error',
+      event: 'trip_query_failed',
+      code: tripError.code ?? 'UNKNOWN',
+      operation: 'select_trip',
+    }))
+    throw new Error('TUA_TRIP_LOAD_FAILED')
+  }
+
+  if (!trip) notFound()
 
   const details = [
     ['Placa', trip.plate],
@@ -77,6 +88,7 @@ export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) 
           <div className="flex flex-col gap-2 sm:flex-row">
             {isAdmin ? <Link href={`/viajes/${id}/editar`} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"><Pencil className="size-4" aria-hidden="true" />Editar viaje</Link> : null}
             {isAdmin && trip.status === 'EN_ROUTE' ? <FinishTripButton tripId={id} expectedUpdatedAt={trip.updated_at} /> : null}
+            {isAdmin && isFinished ? <ReopenTripButton tripId={id} expectedUpdatedAt={trip.updated_at} /> : null}
             <Link href={returnHref} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"><ArrowLeft className="size-4" aria-hidden="true" />{returnLabel}</Link>
           </div>
         }

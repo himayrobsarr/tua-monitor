@@ -5,8 +5,9 @@ Aplica las migraciones de `supabase/migrations` en orden cronológico. Esta vers
 1. `202609241345_dynamic_controls_and_roles.sql`
 2. `202609261400_reporter_finished_trip_guard.sql`
 3. `202609261500_atomic_lifecycle_and_audit.sql`
+4. `202609281200_audit_reason_whitespace_guard.sql`
 
-La última migración y el frontend de esta versión forman una sola entrega: crea los RPC auditados y revoca las escrituras directas que usaba la interfaz anterior. Programa una ventana breve sin escrituras, aplica la migración y publica el frontend inmediatamente después. Si el DDL encuentra un bloqueo por tráfico, la transacción completa se revierte y puede reintentarse fuera de hora pico.
+Las migraciones `202609261500` y `202609281200`, junto con el frontend de esta versión, forman una sola entrega: crean los RPC auditados, revocan las escrituras directas que usaba la interfaz anterior y endurecen la validación de los motivos. Programa una ventana breve sin escrituras, aplica las migraciones y publica el frontend inmediatamente después. Si el DDL encuentra un bloqueo por tráfico, la transacción completa se revierte y puede reintentarse fuera de hora pico.
 
 ## Roles
 
@@ -38,6 +39,7 @@ Permisos efectivos:
 - `reporter`: consulta viajes y controles, y registra paradas o llegadas únicamente mientras el viaje está en ruta. La base de datos asigna la hora oficial del reporte.
 - Un viaje finalizado es de solo lectura para `reporter`, incluso desde una pestaña abierta antes de la finalización.
 - Corregir un viaje finalizado, reabrirlo o agregar/corregir uno de sus controles exige un motivo de hasta 2000 caracteres.
+- La base rechaza motivos vacíos o compuestos solo por espacios ASCII o Unicode, tabulaciones, saltos de línea y separadores invisibles comunes, incluso si el RPC se invoca sin usar la interfaz.
 - Ningún rol de aplicación puede eliminar viajes, controles o eventos de auditoría.
 
 La llegada final y la finalización son decisiones distintas: registrar `FINAL_ARRIVAL` no finaliza automáticamente el viaje. Un administrador valida la operación y usa “Finalizar viaje”.

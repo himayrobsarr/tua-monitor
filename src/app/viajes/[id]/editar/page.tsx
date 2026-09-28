@@ -20,7 +20,17 @@ export default async function EditarViajePage({ params }: EditarViajePageProps) 
   const supabase = await createClient()
   const { data: trip, error } = await supabase.from('trips').select('*').eq('id', id).maybeSingle()
 
-  if (error || !trip) notFound()
+  if (error) {
+    console.error(JSON.stringify({
+      level: 'error',
+      event: 'trip_edit_query_failed',
+      code: error.code ?? 'UNKNOWN',
+      operation: 'select_trip_for_edit',
+    }))
+    throw new Error('TUA_TRIP_EDIT_LOAD_FAILED')
+  }
+
+  if (!trip) notFound()
 
   return (
     <AppShell>
