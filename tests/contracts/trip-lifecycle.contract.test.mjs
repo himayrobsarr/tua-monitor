@@ -24,9 +24,11 @@ const migrationPath = join(
   '202609261500_atomic_lifecycle_and_audit.sql',
 )
 const actionsPath = join(repositoryRoot, 'src', 'app', 'viajes', 'actions.ts')
+const detailPagePath = join(repositoryRoot, 'src', 'app', 'viajes', '[id]', 'page.tsx')
 
 const rawMigration = await readFile(migrationPath, 'utf8')
 const actionsSource = await readFile(actionsPath, 'utf8')
+const detailPageSource = await readFile(detailPagePath, 'utf8')
 
 function stripSqlComments(value) {
   return value
@@ -537,4 +539,16 @@ test('la aplicación muta el ciclo de vida solo mediante Server Actions y RPC ti
     [],
     `Se encontraron mutaciones que eluden los RPC: ${forbiddenMutations.join(', ')}`,
   )
+})
+
+test('los errores remotos generan diagnósticos seguros y estructurados', () => {
+  assert.match(actionsSource, /event:\s*['"]trip_rpc_failed['"]/)
+  assert.match(actionsSource, /code:\s*error\.code\s*\?\?\s*['"]UNKNOWN['"]/)
+  assert.match(actionsSource, /operation,/)
+  assert.doesNotMatch(actionsSource, /error\.(?:message|details|hint)/)
+
+  assert.match(detailPageSource, /event:\s*['"]trip_events_query_failed['"]/)
+  assert.match(detailPageSource, /code:\s*eventsError\.code\s*\?\?\s*['"]UNKNOWN['"]/)
+  assert.match(detailPageSource, /operation:\s*['"]select_trip_events['"]/)
+  assert.doesNotMatch(detailPageSource, /eventsError\.(?:message|details|hint)/)
 })

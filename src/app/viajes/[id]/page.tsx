@@ -40,6 +40,15 @@ export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) 
     getCurrentUserRole(),
   ])
 
+  if (eventsError) {
+    console.error(JSON.stringify({
+      level: 'error',
+      event: 'trip_events_query_failed',
+      code: eventsError.code ?? 'UNKNOWN',
+      operation: 'select_trip_events',
+    }))
+  }
+
   if (tripError || !trip) notFound()
 
   const details = [

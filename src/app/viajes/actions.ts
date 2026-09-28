@@ -62,7 +62,14 @@ function validation(message: string, field?: 'reason'): TripActionResult {
   return { ok: false, code: 'VALIDATION', field, message }
 }
 
-function mapRpcError(error: RpcError, fallback: string): TripActionResult {
+function mapRpcError(error: RpcError, fallback: string, operation: string): TripActionResult {
+  console.error(JSON.stringify({
+    level: 'error',
+    event: 'trip_rpc_failed',
+    code: error.code ?? 'UNKNOWN',
+    operation,
+  }))
+
   switch (error.code) {
     case 'TUA01':
       return {
@@ -197,7 +204,7 @@ export async function finishTripAction(input: TripVersionInput): Promise<TripAct
     p_trip_id: input.tripId,
   })
 
-  if (error) return mapRpcError(error, 'No fue posible finalizar el viaje. Inténtalo de nuevo.')
+  if (error) return mapRpcError(error, 'No fue posible finalizar el viaje. Inténtalo de nuevo.', 'finish_trip')
   if (!hasRpcId(data)) return { ok: false, code: 'UNKNOWN', message: 'El servicio devolvió una respuesta inesperada.' }
 
   revalidateTrip(input.tripId)
@@ -222,7 +229,7 @@ export async function reopenTripAction(input: ReopenTripInput): Promise<TripActi
     p_trip_id: input.tripId,
   })
 
-  if (error) return mapRpcError(error, 'No fue posible reabrir el viaje. Inténtalo de nuevo.')
+  if (error) return mapRpcError(error, 'No fue posible reabrir el viaje. Inténtalo de nuevo.', 'reopen_trip')
   if (!hasRpcId(data)) return { ok: false, code: 'UNKNOWN', message: 'El servicio devolvió una respuesta inesperada.' }
 
   revalidateTrip(input.tripId)
@@ -260,7 +267,7 @@ export async function updateTripDetailsAction(input: UpdateTripDetailsInput): Pr
     p_warehouse: optionalText(input.warehouse),
   })
 
-  if (error) return mapRpcError(error, 'No fue posible actualizar el viaje. Inténtalo de nuevo.')
+  if (error) return mapRpcError(error, 'No fue posible actualizar el viaje. Inténtalo de nuevo.', 'update_trip_details')
   if (!hasRpcId(data)) return { ok: false, code: 'UNKNOWN', message: 'El servicio devolvió una respuesta inesperada.' }
 
   revalidateTrip(input.tripId)
@@ -300,6 +307,7 @@ export async function createTripControlAction(input: CreateTripControlInput): Pr
     return mapRpcError(
       error,
       `No fue posible registrar ${input.controlType === 'STOP' ? 'la parada' : 'la llegada final'}. Inténtalo de nuevo.`,
+      'create_trip_control',
     )
   }
   if (!hasRpcId(data)) return { ok: false, code: 'UNKNOWN', message: 'El servicio devolvió una respuesta inesperada.' }
@@ -342,7 +350,7 @@ export async function updateTripControlAction(input: UpdateTripControlInput): Pr
     p_reported_location: reportedLocation,
   })
 
-  if (error) return mapRpcError(error, 'No fue posible actualizar el control. Inténtalo de nuevo.')
+  if (error) return mapRpcError(error, 'No fue posible actualizar el control. Inténtalo de nuevo.', 'update_trip_control')
   if (!hasRpcId(data) || !isUuid(data.trip_id)) {
     return { ok: false, code: 'UNKNOWN', message: 'El servicio devolvió una respuesta inesperada.' }
   }
