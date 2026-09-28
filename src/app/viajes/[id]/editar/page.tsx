@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { EditTripForm } from '@/components/edit-trip-form'
 import { PageHeading } from '@/components/page-heading'
+import { isUuid } from '@/lib/identifiers'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdminRole } from '@/lib/roles'
 
@@ -17,6 +18,8 @@ export const metadata = {
 export default async function EditarViajePage({ params }: EditarViajePageProps) {
   await requireAdminRole()
   const { id } = await params
+  if (!isUuid(id)) notFound()
+
   const supabase = await createClient()
   const { data: trip, error } = await supabase.from('trips').select('*').eq('id', id).maybeSingle()
 

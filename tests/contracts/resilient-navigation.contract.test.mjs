@@ -11,16 +11,21 @@ async function source(relativePath) {
 }
 
 test('un error de datos no se presenta como viaje inexistente', async () => {
-  const [detailPage, editPage, errorBoundary] = await Promise.all([
+  const [detailPage, editPage, errorBoundary, notFoundPage] = await Promise.all([
     source('src/app/viajes/[id]/page.tsx'),
     source('src/app/viajes/[id]/editar/page.tsx'),
     source('src/app/viajes/[id]/error.tsx'),
+    source('src/app/viajes/[id]/not-found.tsx'),
   ])
 
   assert.match(detailPage, /if \(tripError\)[\s\S]*throw new Error[\s\S]*if \(!trip\) notFound\(\)/)
   assert.match(editPage, /if \(error\)[\s\S]*throw new Error[\s\S]*if \(!trip\) notFound\(\)/)
   assert.match(errorBoundary, /'use client'/)
   assert.match(errorBoundary, /onClick=\{reset\}/)
+  assert.match(detailPage, /if \(!isUuid\(id\)\) notFound\(\)/)
+  assert.match(editPage, /if \(!isUuid\(id\)\) notFound\(\)/)
+  assert.match(notFoundPage, /Viaje no encontrado/)
+  assert.match(notFoundPage, /href="\/viajes"/)
 })
 
 test('las páginas fuera de rango vuelven a una página válida', async () => {

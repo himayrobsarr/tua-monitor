@@ -10,6 +10,7 @@ import { ReopenTripButton } from '@/components/reopen-trip-button'
 import { StatusBadge } from '@/components/status-badge'
 import { TripControlCard } from '@/components/trip-control-card'
 import { formatColombiaDateTime, formatDateOnly } from '@/lib/dates'
+import { isUuid } from '@/lib/identifiers'
 import { getCurrentUserRole } from '@/lib/roles'
 import { createClient } from '@/lib/supabase/server'
 import type { TripEventType } from '@/types/database'
@@ -33,6 +34,8 @@ const eventLabels: Record<TripEventType, string> = {
 
 export default async function ViajeDetailPage({ params }: ViajeDetailPageProps) {
   const { id } = await params
+  if (!isUuid(id)) notFound()
+
   const supabase = await createClient()
   const [{ data: trip, error: tripError }, { data: controls, error: controlsError }, { data: events, error: eventsError }, role] = await Promise.all([
     supabase.from('trips').select('*').eq('id', id).maybeSingle(),
